@@ -1,0 +1,405 @@
+[
+    {
+        "stats": {
+            "n_preds": 0,
+            "avg_op_arity": 2.75,
+            "depth": 5,
+            "n_types": {
+                "and": 1,
+                "wild": 0,
+                "case": 0,
+                "false": 0,
+                "exists": 0,
+                "int": 0,
+                "float": 0,
+                "var": 9,
+                "forall": 1,
+                "iff": 0,
+                "let": 0,
+                "func": 3,
+                "not": 0,
+                "true": 0,
+                "or": 0,
+                "if": 0
+            },
+            "n_quants": 1,
+            "n_ops": 5,
+            "n_branches": 9,
+            "size": 15
+        },
+        "theory": "SuffixSort",
+        "goal": "le_trans"
+    },
+    {
+        "stats": {
+            "n_preds": 2,
+            "avg_op_arity": 2.1689497716894977,
+            "depth": 54,
+            "n_types": {
+                "and": 74,
+                "wild": 0,
+                "case": 0,
+                "false": 0,
+                "exists": 0,
+                "int": 58,
+                "float": 0,
+                "var": 222,
+                "forall": 11,
+                "iff": 0,
+                "let": 10,
+                "func": 135,
+                "not": 0,
+                "true": 0,
+                "or": 0,
+                "if": 2
+            },
+            "n_quants": 11,
+            "n_ops": 240,
+            "n_branches": 280,
+            "size": 531
+        },
+        "theory": "SuffixSort",
+        "goal": "WP_parameter sort"
+    },
+    {
+        "stats": {
+            "n_preds": 0,
+            "avg_op_arity": 2.0344827586206895,
+            "depth": 35,
+            "n_types": {
+                "and": 47,
+                "wild": 0,
+                "case": 0,
+                "false": 0,
+                "exists": 0,
+                "int": 125,
+                "float": 0,
+                "var": 51,
+                "forall": 13,
+                "iff": 0,
+                "let": 1,
+                "func": 98,
+                "not": 0,
+                "true": 0,
+                "or": 0,
+                "if": 0
+            },
+            "n_quants": 13,
+            "n_ops": 170,
+            "n_branches": 176,
+            "size": 359
+        },
+        "theory": "SuffixSort_test",
+        "goal": "WP_parameter bench"
+    },
+    {
+        "stats": {
+            "n_preds": 0,
+            "avg_op_arity": 2.1176470588235294,
+            "depth": 9,
+            "n_types": {
+                "and": 7,
+                "wild": 0,
+                "case": 0,
+                "false": 0,
+                "exists": 0,
+                "int": 5,
+                "float": 0,
+                "var": 16,
+                "forall": 1,
+                "iff": 0,
+                "let": 0,
+                "func": 10,
+                "not": 0,
+                "true": 0,
+                "or": 0,
+                "if": 0
+            },
+            "n_quants": 1,
+            "n_ops": 18,
+            "n_branches": 21,
+            "size": 40
+        },
+        "theory": "SuffixArray",
+        "goal": "WP_parameter select"
+    },
+    {
+        "stats": {
+            "n_preds": 0,
+            "avg_op_arity": 1.5,
+            "depth": 6,
+            "n_types": {
+                "and": 1,
+                "wild": 0,
+                "case": 0,
+                "false": 0,
+                "exists": 0,
+                "int": 0,
+                "float": 0,
+                "var": 6,
+                "forall": 1,
+                "iff": 0,
+                "let": 0,
+                "func": 7,
+                "not": 0,
+                "true": 0,
+                "or": 0,
+                "if": 0
+            },
+            "n_quants": 1,
+            "n_ops": 9,
+            "n_branches": 6,
+            "size": 16
+        },
+        "theory": "SuffixArray",
+        "goal": "permut_permutation"
+    },
+    {
+        "stats": {
+            "n_preds": 0,
+            "avg_op_arity": 2.070588235294118,
+            "depth": 23,
+            "n_types": {
+                "and": 26,
+                "wild": 0,
+                "case": 0,
+                "false": 0,
+                "exists": 0,
+                "int": 27,
+                "float": 0,
+                "var": 79,
+                "forall": 10,
+                "iff": 0,
+                "let": 2,
+                "func": 57,
+                "not": 0,
+                "true": 0,
+                "or": 0,
+                "if": 0
+            },
+            "n_quants": 10,
+            "n_ops": 99,
+            "n_branches": 106,
+            "size": 215
+        },
+        "theory": "SuffixArray",
+        "goal": "WP_parameter create"
+    },
+    {
+        "stats": {
+            "n_preds": 0,
+            "avg_op_arity": 2.13953488372093,
+            "depth": 14,
+            "n_types": {
+                "and": 14,
+                "wild": 0,
+                "case": 0,
+                "false": 0,
+                "exists": 0,
+                "int": 10,
+                "float": 0,
+                "var": 42,
+                "forall": 2,
+                "iff": 0,
+                "let": 3,
+                "func": 26,
+                "not": 0,
+                "true": 0,
+                "or": 0,
+                "if": 0
+            },
+            "n_quants": 2,
+            "n_ops": 45,
+            "n_branches": 52,
+            "size": 99
+        },
+        "theory": "SuffixArray",
+        "goal": "WP_parameter lcp"
+    },
+    {
+        "stats": {
+            "n_preds": 0,
+            "avg_op_arity": 2.0714285714285716,
+            "depth": 25,
+            "n_types": {
+                "and": 26,
+                "wild": 0,
+                "case": 0,
+                "false": 0,
+                "exists": 0,
+                "int": 59,
+                "float": 0,
+                "var": 27,
+                "forall": 5,
+                "iff": 0,
+                "let": 0,
+                "func": 45,
+                "not": 0,
+                "true": 0,
+                "or": 0,
+                "if": 0
+            },
+            "n_quants": 5,
+            "n_ops": 80,
+            "n_branches": 86,
+            "size": 171
+        },
+        "theory": "SuffixArray_test",
+        "goal": "WP_parameter bench"
+    },
+    {
+        "stats": {
+            "n_preds": 0,
+            "avg_op_arity": 2.1818181818181817,
+            "depth": 7,
+            "n_types": {
+                "and": 3,
+                "wild": 0,
+                "case": 0,
+                "false": 0,
+                "exists": 0,
+                "int": 2,
+                "float": 0,
+                "var": 14,
+                "forall": 1,
+                "iff": 0,
+                "let": 0,
+                "func": 8,
+                "not": 0,
+                "true": 0,
+                "or": 0,
+                "if": 0
+            },
+            "n_quants": 1,
+            "n_ops": 13,
+            "n_branches": 16,
+            "size": 30
+        },
+        "theory": "LRS",
+        "goal": "lcp_sym"
+    },
+    {
+        "stats": {
+            "n_preds": 0,
+            "avg_op_arity": 3.2,
+            "depth": 5,
+            "n_types": {
+                "and": 1,
+                "wild": 0,
+                "case": 0,
+                "false": 0,
+                "exists": 0,
+                "int": 0,
+                "float": 0,
+                "var": 14,
+                "forall": 1,
+                "iff": 0,
+                "let": 0,
+                "func": 4,
+                "not": 0,
+                "true": 0,
+                "or": 0,
+                "if": 0
+            },
+            "n_quants": 1,
+            "n_ops": 7,
+            "n_branches": 14,
+            "size": 22
+        },
+        "theory": "LRS",
+        "goal": "le_le_common_prefix"
+    },
+    {
+        "stats": {
+            "n_preds": 0,
+            "avg_op_arity": 2.857142857142857,
+            "depth": 6,
+            "n_types": {
+                "and": 2,
+                "wild": 0,
+                "case": 0,
+                "false": 0,
+                "exists": 0,
+                "int": 0,
+                "float": 0,
+                "var": 16,
+                "forall": 1,
+                "iff": 0,
+                "let": 0,
+                "func": 5,
+                "not": 0,
+                "true": 0,
+                "or": 0,
+                "if": 0
+            },
+            "n_quants": 1,
+            "n_ops": 9,
+            "n_branches": 16,
+            "size": 26
+        },
+        "theory": "LRS",
+        "goal": "le_le_longest_common_prefix"
+    },
+    {
+        "stats": {
+            "n_preds": 1,
+            "avg_op_arity": 2.0778816199376946,
+            "depth": 44,
+            "n_types": {
+                "and": 124,
+                "wild": 0,
+                "case": 0,
+                "false": 0,
+                "exists": 2,
+                "int": 58,
+                "float": 0,
+                "var": 316,
+                "forall": 22,
+                "iff": 0,
+                "let": 3,
+                "func": 183,
+                "not": 11,
+                "true": 0,
+                "or": 0,
+                "if": 1
+            },
+            "n_quants": 24,
+            "n_ops": 347,
+            "n_branches": 374,
+            "size": 745
+        },
+        "theory": "LRS",
+        "goal": "WP_parameter lrs"
+    },
+    {
+        "stats": {
+            "n_preds": 0,
+            "avg_op_arity": 2.0833333333333335,
+            "depth": 18,
+            "n_types": {
+                "and": 13,
+                "wild": 0,
+                "case": 0,
+                "false": 0,
+                "exists": 0,
+                "int": 39,
+                "float": 0,
+                "var": 7,
+                "forall": 4,
+                "iff": 0,
+                "let": 0,
+                "func": 24,
+                "not": 0,
+                "true": 0,
+                "or": 0,
+                "if": 0
+            },
+            "n_quants": 4,
+            "n_ops": 42,
+            "n_branches": 46,
+            "size": 92
+        },
+        "theory": "LRS_test",
+        "goal": "WP_parameter bench"
+    }
+]
