@@ -25,7 +25,6 @@ all:
 	ocamlfind ocamlc -c  get_predictions.mli
 	@echo and its binary
 	ocamlfind ocamlc tree.cmo -g -thread get_predictions.ml -o get_predictions.native
-	./get_predictions.native
 	@echo done
 
 	@echo compiling make_session interface

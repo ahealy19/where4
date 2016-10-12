@@ -8,29 +8,32 @@ open Printer
 open Driver
 open Make_session
 
-
+(* a map for each metric -> value. Takes a Task *)
 let get_stats t = Mytermcode.t_shape_num_map t
 
-let print_level_tags_goal t : unit =
-    Hashtbl.iter (fun k v -> if k="avg_op_arity" then printf "%s:%f\n" k v else printf "%s:%.0f\n" k v ) (get_stats t)
+(* just print the statics metrics - for debugging. Takes a Task *)
+let print_level_tags_goal stats : unit =
+    Hashtbl.iter (fun k v -> if k="avg_op_arity" then printf "%s:%f\n" k v else printf "%s:%.0f\n" k v ) stats(*(get_stats t)*)
 
-
+(* print the static metrics as well as predicted best solver *)
 let print_stats theory goals : unit = 
   let t_name : Ident.ident = theory.Session.theory_name in
   List.iter
     (fun g ->
       let g_name : Ident.ident = g.Session.goal_name in
       let t : Task.task = Session.goal_task g in
+      let stats = get_stats t in
       printf "\ntheory:%s\ngoal:%s\n"
         t_name.Ident.id_string
         g_name.Ident.id_string;
-    print_level_tags_goal t;
-    print_predictions (get_predictions (get_stats t)) 
+    print_level_tags_goal stats;(*t;*)
+    stats |> get_predictions |> print_predictions 
+    (*print_predictions (get_predictions (get_stats t))*) 
     )
   goals
 
 (* temporarily necessary until I get a new forest *)
-let old_to_new () =
+(*let old_to_new () =
   let tbl = Hashtbl.create 6 in
   Hashtbl.add tbl "Alt-Ergo" "Alt-Ergo-1.01";
   Hashtbl.add tbl "Z3" "Z3-4.4.1";
@@ -39,15 +42,15 @@ let old_to_new () =
   Hashtbl.add tbl "Yices" "Yices";
   Hashtbl.add tbl "veriT" "veriT";
   tbl
-
+*)
 
 let rec best_I_have hash preds : (Why3.Whyconf.config_prover * Why3.Driver.driver) option = 
   match preds with
   | [] -> None
   | (h, _)::tl -> (
       try
-        let tbl = old_to_new () in
-        let t = Hashtbl.find hash (Hashtbl.find tbl h) in
+        (*let tbl = (*old_to_new ()*) in*)
+        let t = Hashtbl.find hash h (*(Hashtbl.find tbl h)*) in
         match t with
         | Some (p, d) -> t
         | None -> best_I_have hash tl
@@ -56,6 +59,7 @@ let rec best_I_have hash preds : (Why3.Whyconf.config_prover * Why3.Driver.drive
         exit 1 
     )
 
+(* convert the prover answer into a string the Why3 driver understands *)
 let print_answer (pr: Call_provers.prover_result) (p:Whyconf.prover) : unit =
   let s = match pr.Call_provers.pr_answer with
     | Call_provers.Valid -> "Valid"
@@ -76,8 +80,7 @@ let print_answer (pr: Call_provers.prover_result) (p:Whyconf.prover) : unit =
     pr.Call_provers.pr_time
     steps
 
-
-
+(*  *)
 let prove path_to_file (file:unit Session.file) hash : unit =
   List.iter (
     fun th -> List.iter (
@@ -95,24 +98,6 @@ let prove path_to_file (file:unit Session.file) hash : unit =
             let post_pc : Call_provers.post_prover_call =
             Call_provers.wait_on_call pc in
             let _pr : Call_provers.prover_result = post_pc () in 
-            (*let s =   match _pr.Call_provers.pr_answer with
-              | Call_provers.Valid -> "Valid"
-              | Call_provers.Invalid -> "Invalid"
-              | Call_provers.Timeout -> "Timeout"
-              | Call_provers.OutOfMemory -> "Fatal error: out of memory" 
-              | Call_provers.StepLimitExceeded -> "Steps limit reached"
-              | Call_provers.Unknown _ -> "Unknown"
-              | Call_provers.Failure s -> "Failure " ^ s
-              | Call_provers.HighFailure -> "Failure"
-            in
-            let pname = prover.Whyconf.prover_name in
-            let steps = if _pr.Call_provers.pr_steps <> (-1) 
-              then " ("^ (string_of_int ) _pr.Call_provers.pr_steps ^ " steps)"  else ""
-            in printf "%a (%s : %.2f secs)%s\n" 
-              s(*Call_provers.print_prover_answer _pr.Call_provers.pr_answer*)
-              pname
-              _pr.Call_provers.pr_time
-              steps*)
             print_answer _pr prover;
           with e ->
             printf "Failure %a (%s)\n"

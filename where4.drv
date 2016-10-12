@@ -1,0 +1,21 @@
+(* this is a where4 driver *)
+printer "why3"
+filename "%f-%t-%g.why"
+
+valid "Valid .*"
+invalid "Invalid .*"
+unknown "Unknown .*" ""
+timeout "Timeout .*"
+steplimitexceeded "Steps limit reached .*"
+outofmemory "Fatal error: out of memory .*"
+fail "Failure .*" ""
+time "Valid (\\([a-zA-Z\-]+[0-9\-\.]*\\)+ : %s)"
+steps "Valid (\\([a-zA-Z\-]+[0-9\-\.]*\\)+ : \\([0-9]+.?[0-9]*\\)) (\\([0-9]+.?[0-9]*\\))" 3
+steps "Valid (\\([a-zA-Z\-]+[0-9\-\.]*\\)+ : \\([0-9]+.?[0-9]*\\)) (\\([0-9]+.?[0-9]*\\) steps)" 3
+time "why3cpulimit time : %s s"
+
+theory BuiltIn
+  syntax type  int  "int"
+  syntax type  real "real"
+  syntax predicate (=)  "(%1 = %2)"
+end
