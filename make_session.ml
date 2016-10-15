@@ -93,6 +93,7 @@ let env_session,_,_ =
 
 (* adds a file in the new session *)
 
+(* needed by why3 which moves temporary files to /tmp/ *)
 let make_relative path_to_file =
 	let sess_dir = Unix.getcwd () in
 	let regex = Str.regexp "/" in
