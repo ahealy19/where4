@@ -10,6 +10,15 @@ open Make_session
 
 type result = Call_provers.prover_result * string * string
 
+type threshold = float option
+
+type where_options = {
+  thresh: threshold;
+  verbose: bool;
+  time: int;
+  rel: bool;
+}
+
 type where_task = {
   theory_name: string;
   goal_name: string;
@@ -48,59 +57,30 @@ let update_task (current:where_task) (new_result:result) (pr:Call_provers.prover
     current_time = (current.current_time +. pr.Call_provers.pr_time) 
   }
 
-let check_update (current:where_task) (new_result:result) : where_task =
-  match new_result with
-  | (pr, _, _) ->
-    match pr.Call_provers.pr_answer with
-    | Call_provers.Valid | Call_provers.Invalid-> 
-      update_task current new_result pr
-    | Call_provers.Unknown _ -> 
-      begin
-      match current.current_best with
-      | (pr2, _, _) ->
-        match pr2.Call_provers.pr_answer with
-        | Call_provers.Unknown _ ->
-          begin
-          if pr.Call_provers.pr_time < current.current_time then
-            update_task current new_result pr
-          else 
-            current
-          end
-        | _ -> update_task current new_result pr
-      end
-    | Call_provers.Timeout ->
-      begin
-        match current.current_best with
-        | (pr2, _, _) ->
-        match pr2.Call_provers.pr_answer with
-        | Call_provers.Unknown _ -> 
-          update_task current new_result pr
-        | Call_provers.Timeout ->
-          begin
-          if pr.Call_provers.pr_time < current.current_time then
-            update_task current new_result pr
-          else 
-            current
-          end
-        | _ -> update_task current new_result pr
-      end
-    | _ ->
-      begin
-        match current.current_best with
-        | (pr2, _, _) ->
-        match pr2.Call_provers.pr_answer with
-        | Call_provers.Unknown _ | Call_provers.Timeout -> 
-          update_task current new_result pr
-        | _ ->
-          begin
-          if pr.Call_provers.pr_time < current.current_time then
-            update_task current new_result pr
-          else 
-            current
-          end
-      end
-      
+let ans_to_num pr : int =
+  match pr with
+  | Call_provers.Valid -> 0
+  | Call_provers.Invalid -> 1
+  | Call_provers.Unknown _ -> 2
+  | Call_provers.Timeout -> 3
+  | _ -> 4 
 
+let check_update (current:where_task) (new_result:result) : where_task =
+
+ match new_result with
+ | (pr1,_,_) -> 
+ begin
+   let p1 = (ans_to_num pr1.Call_provers.pr_answer) in
+   match current.current_best with
+   | (pr2,_,_) -> 
+   begin
+     let p2 = (ans_to_num pr2.Call_provers.pr_answer) in
+     if p1 < p2 || (p1 = p2 && pr1.Call_provers.pr_time < current.current_time) then 
+        update_task current new_result pr1
+     else
+        current
+   end
+ end
 
 let try_again (pr : result) : bool =
   match pr with 
@@ -126,8 +106,8 @@ let rec best_I_have hash preds : ((Why3.Whyconf.config_prover * Why3.Driver.driv
     )
 
 (* convert the prover answer into a string the Why3 driver understands *)
-let print_answer (wtsk:where_task) : unit =
-  match wtsk.current_best with
+let print_answer (wtsk:where_task) (to_print:result) : unit =
+  match to_print with
   |(pr, pname, pver) ->
     let s = match pr.Call_provers.pr_answer with
       | Call_provers.Valid -> "Valid"
@@ -141,13 +121,13 @@ let print_answer (wtsk:where_task) : unit =
     in
     let steps = if pr.Call_provers.pr_steps <> (-1) 
       then " ("^ (string_of_int ) pr.Call_provers.pr_steps ^ " steps)"  else ""
-    in printf "%s (Theory: %s Goal: %s Prover: %s v.%s : %.2f secs)%s\n" 
+    in printf "%s\t(%.2f secs) %s v.%s\t-T %s -G \"%s\"%s\n" 
       s
-      wtsk.theory_name
-      wtsk.goal_name
+      pr.Call_provers.pr_time
       pname
       pver
-      wtsk.current_time
+      wtsk.theory_name
+      wtsk.goal_name
       steps
 
 
@@ -169,10 +149,10 @@ let get_prover_result p d tsk prover time : result option =
         prover.Whyconf.prover_name;
       None
 
-let rec exhaust_provers hash preds tsk time current : unit =
+let rec exhaust_provers hash preds tsk time current verbose : unit =
   let best, rest = best_I_have hash preds in
   match best with
-  | None -> print_answer current(*eprintf "ERROR, none returned by best_I_have\n"*)
+  | None -> print_answer current current.current_best(*eprintf "ERROR, none returned by best_I_have\n"*)
   | Some (p, d) -> 
     let prover : Whyconf.prover = p.Whyconf.prover in
     let _pr : result option = get_prover_result p d tsk prover time in 
@@ -180,11 +160,12 @@ let rec exhaust_provers hash preds tsk time current : unit =
     | None -> ()
     | Some res ->
     let curr = check_update current res in
-    (*print_answer curr; debugging*)
+    let () = if verbose then (print_answer curr res) in
     if (try_again res) then
-      exhaust_provers hash rest tsk time curr
+      exhaust_provers hash rest tsk time curr verbose
     else 
-      print_answer curr
+      (* already printed above in verbose mode *)
+      if (not verbose) then (print_answer curr curr.current_best) 
   
     
 let initial_prover hash tsk time : result option =
@@ -207,12 +188,12 @@ let initial_prover hash tsk time : result option =
   
 
 (*  *)
-let prove path_to_file (file:unit Session.file) hash time : unit =
+let prove path_to_file (file:unit Session.file) hash (opt:where_options) : unit =
   List.iter (
     fun th -> List.iter (
       fun g -> 
         let tsk = Session.goal_task g in
-        (* give it to a good prover with a short timeour *)
+        (* give it to a good prover with a short timeout limit of 1 second *)
         let _pr = initial_prover hash tsk 1 in
         match _pr with
         | None -> ()
@@ -229,19 +210,24 @@ let prove path_to_file (file:unit Session.file) hash time : unit =
           current_best = pr;
           current_time = pres.Call_provers.pr_time 
           } in
-        (*print_answer curr; debugging*)
+        
         if (try_again pr) then
           (* feature extraction and prediction *)
-          let preds = tsk |> get_stats |> get_predictions |> sort_predictions in
-          exhaust_provers hash preds tsk (time-1) curr
+          let sorted = tsk |> get_stats |> get_predictions |> sort_predictions in
+          match opt.thresh with
+          | Some t ->
+            (* only provers with costs below the threshold *)
+            let preds = List.filter (fun (_,f) -> f <= t) sorted in
+            exhaust_provers hash preds tsk (opt.time) curr opt.verbose
+          | None -> exhaust_provers hash sorted tsk (opt.time) curr opt.verbose
         else
-          print_answer curr
-
+          (* pre-solving successful *)
+          print_answer curr pr
         end
     ) th.Session.theory_goals
   ) file.Session.file_theories
 
-let print_predict path_to_file (file:unit Session.file) hash time : unit =
+let print_predict path_to_file (file:unit Session.file) hash (opt:where_options) : unit =
   List.iter (
     fun th -> 
       let theory_name = th.Session.theory_name in
@@ -264,35 +250,82 @@ let print_predict path_to_file (file:unit Session.file) hash time : unit =
 let print_usage () = 
   printf "Where4 version 1.1 (October 2016, Maynooth University)\n\n";
   printf "USAGE:\n\n";
-  printf "\t-h, --help\t\tprint this information\n";
-  printf "\t-v, --version\t\tprint the version number\n";
-  printf "\t-l, --list-provers\tlist the SMT provers found by Whyfolio which can be used for predictions\n";
-  printf "\tprove -rel(optional) FILENAME\trun the predicted best prover on FILENAME (which must be a relative path to a .mlw or .why file \n\t\t\twhen using the -rel flag)\n";
+  printf "-h, --help\t\tprint this information\n";
+  printf "--version\t\tprint the version number\n";
+  printf "-l, --list-provers\tlist the SMT provers found by Where4 which can be used for predictions\n";
+  printf "\n[prove|predict] FILENAME <[-ts|--threshold] THRESH> <[-tm|--time] TIME> <-v|--verbose>\n";
+  printf "  prove\t\trun the best predicted provers on FILENAME\n";
+  printf "  predict\t\tprint the best predicted provers for FILENAME\n";
+  printf "  FILENAME\t\ta relative path to a .mlw or .why file (mandatory)\n";
+  printf "----(the following flags are optional. Their order is unimportant)----\n";
+  printf "  -ts,--threshold THRESH\tset the cost threshold to the floating point THRESH (optional)\n"; 
+  printf "  -tm,--time TIME\t\tset the time limit for each prover to be the integer TIME (optional)\n";
+  printf "  -v,--verbose\t\tprint out each solver answer (optional)\n";
   exit 0
+
+let print_opts (opt:where_options): unit=
+  printf "time:%d\n" opt.time;
+  let () = if opt.rel then printf "rel:true\n" else printf "rel:false\n" in
+  let () = if opt.verbose then printf "verbose:true\n" else printf "verbose:false\n" in
+  match opt.thresh with Some f -> (printf "thresh:%.2f" f) | None -> printf "thresh:none\n"
 
 let one_tab_or_two s =
   if String.length s < 6 then "\t\t" else "\t"
 
-let prove_or_predict which_fun len =
+let prove_or_predict which_fun len opt =
   if len > 2 then
     let pm = provermap in
-    match Sys.argv.(2) with
-    | "-why" ->
+    let fn = if opt.rel then 
+      (make_file Sys.argv.(2))
+    else
       (* handle calls for why3 differently:
          the path needs to made relative to the tmp folder where why3 prints,
          a timit limit is given by the user via the driver 
        *)
-      if len > 4 then (which_fun Sys.argv.(3) (make_file (make_relative Sys.argv.(3))) pm (int_of_string Sys.argv.(4)) ; exit 0) 
-      else (printf "filename and time limit expected"; print_usage ())
-    | _ -> which_fun Sys.argv.(2) (make_file Sys.argv.(2)) pm 10; exit 0
+      (make_file (make_relative Sys.argv.(3)))
+    in
+      which_fun Sys.argv.(2) fn pm opt; exit 0
   else printf "filename expected"; print_usage ()
+
+let rec extract_args (args:string list) (acc:where_options) : where_options option =
+  match args with 
+  | [] -> Some acc
+  | h::t ->
+  begin
+    match h with 
+    | "-v" | "--verbose" -> extract_args t {thresh=acc.thresh;verbose=true;time=acc.time;rel=acc.rel}
+    | "-why " -> extract_args t {thresh=acc.thresh;verbose=acc.verbose;time=acc.time;rel=false}
+    | "-ts" | "--threshold" ->
+    begin
+      match t with
+      | hd::tl -> 
+        (try
+          extract_args tl {thresh=Some (float_of_string hd);verbose=acc.verbose;time=acc.time;rel=acc.rel}
+        with e -> printf "ERROR: THRESH must be a float eg: 7.5\n"; None) 
+      | _ -> printf "-ts or --threshold must be followed by a float eg. 7.5\n"; None
+    end
+    | "-tm" | "--time" ->
+    begin
+      match t with 
+      | hd::tl -> 
+        (try
+          extract_args tl {thresh=acc.thresh;verbose=acc.verbose;time=(int_of_string hd);rel=acc.rel}
+        with e -> printf "ERROR: TIME must be an integer eg. 5\n"; None) 
+      | _ -> printf "-tm or --time must be followed by an integer eg. 5.\n"; None
+    end
+    | _ -> extract_args t acc
+  end
 
 let () = 
   let len = Array.length Sys.argv in
+  let o = extract_args (Array.to_list Sys.argv) {thresh=None;verbose=false;time=5;rel=true} in 
+  match o with 
+  | None -> exit 0
+  | Some opt ->
   if len > 1 then
     match Sys.argv.(1) with
     | "-h" | "--help" -> print_usage ()
-    | "-v" | "--version" -> printf "Where4 version 1.1\n"
+    | "--version" -> printf "Where4 version 1.1\n"
     | "-l" | "--list-provers" -> (
       printf "Known provers:\n\n";
       let pm = provermap in 
@@ -303,8 +336,8 @@ let () =
         | None -> printf "%s%s ... NOT found\n" k (one_tab_or_two k)
       ) pm
     )
-    | "prove" -> prove_or_predict prove len
-    | "predict" -> prove_or_predict print_predict len
+    | "prove" -> prove_or_predict prove len opt
+    | "predict" -> prove_or_predict print_predict len opt
     (* it will fall through to this if you're not careful *)
     | _ -> print_usage ()
 

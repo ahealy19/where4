@@ -73,7 +73,7 @@ let sort_predictions pred : prediction list =
 	| None -> [] | Some p -> (match p with 
 		| Node _ -> []
 		| Leaf preds -> (
-	 		List.sort (fun (_, s1) (_, s2) -> if s1 > s2 then 1 else if s1 > s2 then (-1) else 0 )
+	 		List.sort (fun (_, s1) (_, s2) -> if s1 > s2 then 1 else if s2 > s1 then (-1) else 0 )
 	 		preds
 	 	)
 	)

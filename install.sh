@@ -53,10 +53,10 @@ printf "compiling treetypes interface..."
 ocamlfind ocamlc -c treetypes.mli && echo done || (echo fail; exit 1)
 #echo done.
 
-printf "compiling print_goal.ml..."
-ocamlfind ocamlc -g -thread -linkpkg -package yojson print_goals.ml -o print_goals.native  && echo done. calling it.. || (echo fail; exit 1)
+printf "compiling print_tree.ml..."
+ocamlfind ocamlc -g -thread -linkpkg -package yojson print_tree.ml -o print_tree.native  && echo done. calling it.. || (echo fail; exit 1)
 #echo "done. Calling it..."
-./print_goals.native
+./print_tree.native
 echo "done. printing tree.ml.."
 
 printf "compiling tree.ml interface..."
@@ -86,7 +86,7 @@ ocamlfind ocamlc -c -linkpkg -package why3 make_session.mli && printf "done. Now
 ocamlfind ocamlc make_session.cmo -g -thread -linkpkg -package str -package unix -package num -package dynlink -package menhirLib -package why3 -package ocamlgraph make_session.ml -o make_session.native && echo done || (echo fail; exit 1)
 #echo done.
 
-printf "compiling final whyfolio binary..."
+printf "compiling final where4 binary..."
 ocamlfind ocamlc mytermcode.cmo tree.cmo get_predictions.cmo make_session.cmo -g -thread -linkpkg -package str -package unix -package num -package dynlink -package menhirLib -package why3 -package ocamlgraph where4.ml -o where4.native  && echo done || (echo fail; exit 1)
 #echo done.
 

@@ -15,6 +15,7 @@
 
 open Why3
 
+(*
 val goal_expl_task:
   root:bool -> Task.task -> Ident.ident * string option * Task.task
 
@@ -28,11 +29,7 @@ type shape
 val string_of_shape: shape -> string
 val shape_of_string: string -> shape
 val equal_shape: shape -> shape -> bool
-(* unused
-val print_shape: Format.formatter -> shape -> unit
-*)
 
-(* val t_shape_buf : ?version:int -> Term.term -> shape *)
   (** returns the shape of a given term *)
 val t_shape_task: ?version:int -> Task.task -> shape
 	(** return the shape of a given term *)
@@ -42,4 +39,6 @@ val t_shape_num: Task.task -> (string list * string) list (* was (int * string) 
 
 val t_shape_num_pat: Term.pattern -> (string list * string) list
 
+*)
+(* this is the only one where4 needs *)
 val t_shape_num_map: Task.task -> (string, float) Hashtbl.t
