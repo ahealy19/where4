@@ -15,7 +15,6 @@ let dummy_keygen ?parent () = ()
 let installed_provers : Whyconf.config_prover Whyconf.Mprover.t =
   Whyconf.get_provers config
 
-
 let myprover_names = ["Z3-4.4.1"; "Z3-4.3.2"; "Alt-Ergo-1.01"; "Alt-Ergo-0.95.2";
                       "CVC4"; "CVC3"; "Yices"; "veriT"]
 
@@ -75,11 +74,8 @@ let provermap =
     ) myprover_names;
     pm
 
-
 (* a dummy keygen function for sessions *)
 (* create an empty session in the current directory *)
-
-
 let env_session,_,_ =
 	let dummy_session : unit Session.session = Session.create_session "." in
   let ctxt = {
@@ -100,7 +96,6 @@ let make_relative path_to_file =
 	let pieces = Str.split regex sess_dir in
 	let backwards = String.concat "/" (List.map (fun _ -> "..") pieces) in
 	String.concat "" [backwards; path_to_file]
-
 
 let make_file path_to_file : unit Session.file =
   try

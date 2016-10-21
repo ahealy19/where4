@@ -83,5 +83,3 @@ let get_best (preds:prediction list) =
 	| (n,_)::tl -> Some(n) 
 
 (* build with ocamlfind ocamlc -g -thread get_predictions.ml -o get_predictions.native *)
-
-(* let () = printf "get_predictions.ml built!\n" *)

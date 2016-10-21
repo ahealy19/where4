@@ -1,7 +1,5 @@
-(*open Core.Std*)
 open Yojson
 open Treetypes
-(*open Format*)
 open Printf
 open Pervasives
 
@@ -35,31 +33,6 @@ let make_forest json : forest =
 	let trees = json |> Yojson.Safe.to_basic |> Yojson.Basic.Util.to_list in
 	List.map ((fun t -> make_tree_from_forest t)) trees
 
-(** returns a table of feature -> value mappings for testing the get_predictions function  *)	
-(*
-let make_stats js =
-	let json = js |> Yojson.Safe.to_basic |> Yojson.Basic.Util.index 0 |> Yojson.Basic.Util.to_assoc in 
-	let table = String.Table.create () in
-
-	List.iter json 
-		~f:(fun (s, j) ->
-			if s = "stats" then
-				let fields = ["n_preds"; "avg_op_arity"; "depth"; "n_quants"; "n_ops"; "n_branches"; "size"] in
-				List.iter fields 
-				~f:(fun field -> 
-					let value = j |> Yojson.Basic.Util.member field |> Yojson.Basic.Util.to_number in
-					let _ = String.Table.add table ~key:field ~data:value in () );
-				let types = ["and"; "wild"; "case"; "false"; "exists"; "int"; "float"; 
-							"var"; "forall"; "iff"; "let"; "func"; "not"; "true"; "or"; "if"] in
-				let n_types = j |> Yojson.Basic.Util.member "n_types"  in
-				List.iter types
-					~f:(fun t ->
-						let s = n_types |> Yojson.Basic.Util.member t |> Yojson.Basic.Util.to_number in
-						let _ = String.Table.add table ~key:t ~data:s in () )
-			else ()
-		); 
-	table
-*)
 let print_node_file outc (n:tree_node) : unit =
 	match n with
 	| Node ((f, t), l, r) ->

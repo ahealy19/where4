@@ -10,6 +10,8 @@ WHY3=why3
 DETECTION=/usr/local/share/why3/provers-detection-data.conf
 DRIVERS=/usr/local/share/why3/drivers
 REINSTALL=0
+TREE=0
+JSONPATH=forest.json
 
 while [[ $# -gt 1 ]]
 do
@@ -18,6 +20,11 @@ key="$1"
 case $key in
     -l|--location)
     LOCATION="$2"
+    shift # past argument
+    ;;
+    -t|--tree)
+    TREE=1
+    JSONPATH="$2"
     shift # past argument
     ;;
     -w|--why3name)
@@ -48,47 +55,93 @@ echo WHERE4	binary location 		= "${LOCATION}"
 echo WHY3 	binary location			= "${WHY3}"
 echo prover-detect location 		= "${DETECTION}"
 echo why3 drivers location			= "${DRIVERS}"
+if [$TREE -eq 1] then
+    echo tree path                      = "${JSONPATH}"
+fi
+if [$TREE -eq 0] then
+    echo forest path                    = "${JSONPATH}"
+fi
+
+if [$REINSTALL -eq 1] then
+    ./uninstall.sh -l ${LOCATION} -w ${WHY3}
+fi
+
 
 printf "compiling treetypes interface..."
-ocamlfind ocamlc -c treetypes.mli && echo done || (echo fail; exit 1)
+
+if ocamlfind ocamlc -c treetypes.mli;
+    then echo done
+    else echo fail; exit 1
+fi
 #echo done.
 
 printf "compiling print_tree.ml..."
-ocamlfind ocamlc -g -thread -linkpkg -package yojson print_tree.ml -o print_tree.native  && echo done. calling it.. || (echo fail; exit 1)
-#echo "done. Calling it..."
-./print_tree.native
-echo "done. printing tree.ml.."
+if ocamlfind ocamlc -g -thread -linkpkg -package yojson \
+    print_tree.ml -o print_tree.native;
+    then echo done. calling it.. 
+    else echo fail; exit 1
+fi
+
+./print_tree.native;
+echo "printing tree.ml.."
 
 printf "compiling tree.ml interface..."
-ocamlfind ocamlc -c tree.mli && printf "done. Now its binary..." || (echo fail; exit 1)
-#printf "done.\nNow its binary..."
+if ocamlfind ocamlc -c tree.mli;
+    then printf "done. Now its binary..."
+    else echo fail; exit 1
+fi
 
-ocamlfind ocamlc -g -thread tree.ml -o tree.native && echo done || (echo fail; exit 1)
-#echo done.
+if ocamlfind ocamlc -g -thread tree.ml -o tree.native;
+    then echo done
+    else echo fail; exit 1
+fi
 
 printf "compiling mytermcode interface..."
-ocamlfind ocamlc -c -linkpkg -package why3 mytermcode.mli && printf "done. Now its binary..." || (echo fail; exit 1)
-#printf "done.\nNow its binary..."
+if ocamlfind ocamlc -c -linkpkg -package why3 mytermcode.mli;
+    then printf "done. Now its binary..."
+    else echo fail; exit 1
+fi
 
-ocamlfind ocamlc mytermcode.cmo -g -thread -linkpkg -package str -package unix -package num -package dynlink -package menhirLib -package why3 -package ocamlgraph mytermcode.ml -o mytermcode.native  && echo done || (echo fail; exit 1)
+if ocamlfind ocamlc mytermcode.cmo -g -thread -linkpkg -package str \
+    -package unix -package num -package dynlink -package menhirLib \
+    -package why3 -package ocamlgraph mytermcode.ml -o mytermcode.native;
+    then echo done
+    else echo fail; exit 1
+fi
 
 printf "compiling get_predictions interface..."
-ocamlfind ocamlc -c  get_predictions.mli  && printf "done. Now its binary..." || (echo fail; exit 1)
-#printf "done.\nNow its binary..."
+if ocamlfind ocamlc -c  get_predictions.mli;
+    then printf "done. Now its binary..."
+    else echo fail; exit 1
+fi
 
-ocamlfind ocamlc tree.cmo -g -thread get_predictions.ml -o get_predictions.native # && echo done || (echo fail; exit 1)
-echo done.
+if ocamlfind ocamlc tree.cmo -g -thread get_predictions.ml \
+    -o get_predictions.native;
+    then echo done.
+    else echo fail; exit 1
+fi 
 
 printf "compiling make_session interface..."
-ocamlfind ocamlc -c -linkpkg -package why3 make_session.mli && printf "done. Now its binary..." || (echo fail; exit 1)
-#printf "done.\nNow its binary..."
+if ocamlfind ocamlc -c -linkpkg -package why3 make_session.mli;
+    then printf "done. Now its binary..."
+    else echo fail; exit 1
+fi
 
-ocamlfind ocamlc make_session.cmo -g -thread -linkpkg -package str -package unix -package num -package dynlink -package menhirLib -package why3 -package ocamlgraph make_session.ml -o make_session.native && echo done || (echo fail; exit 1)
-#echo done.
+if ocamlfind ocamlc make_session.cmo -g -thread -linkpkg -package str \
+    -package unix -package num -package dynlink -package menhirLib \
+    -package why3 -package ocamlgraph make_session.ml -o make_session.native;
+    then echo done
+    else echo fail; exit 1
+fi
 
 printf "compiling final where4 binary..."
-ocamlfind ocamlc mytermcode.cmo tree.cmo get_predictions.cmo make_session.cmo -g -thread -linkpkg -package str -package unix -package num -package dynlink -package menhirLib -package why3 -package ocamlgraph where4.ml -o where4.native  && echo done || (echo fail; exit 1)
-#echo done.
+if ocamlfind ocamlc mytermcode.cmo tree.cmo get_predictions.cmo \
+    make_session.cmo -g -thread -linkpkg -package str -package unix \
+    -package num -package dynlink -package menhirLib -package why3 \
+    -package ocamlgraph where4.ml -o where4.native;
+    then echo done 
+    else echo fail; exit 1
+fi
 
 echo moving it to where why3 can find it: ${LOCATION}
 sudo cp ./where4.native ${LOCATION}/where4
