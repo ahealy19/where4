@@ -1,6 +1,8 @@
 open Why3
 
-val make_file : string -> (unit Session.file) 
+(* takes the path to the .why/.mlw file, the path to the .why.conf file
+	and the file format (why or whyml) as arguements  *)
+val make_file : string -> string -> string -> (unit Session.file) 
 
 (* 	by default, Why3 adds './' to any path supplied.
 	However, when called by the driver, an absolute

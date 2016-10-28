@@ -27,6 +27,10 @@ case $key in
     JSONPATH="$2"
     shift # past argument
     ;;
+    -f|--forest)
+    JSONPATH="$2"
+    shift
+    ;;
     -w|--why3name)
     WHY3="$2"
     shift # past argument
@@ -45,8 +49,7 @@ case $key in
     --default)
     DEFAULT=YES
     ;;
-    *)
-            # unknown option
+    *)        # unknown option
     ;;
 esac
 shift # past argument or value
@@ -55,14 +58,13 @@ echo WHERE4	binary location 		= "${LOCATION}"
 echo WHY3 	binary location			= "${WHY3}"
 echo prover-detect location 		= "${DETECTION}"
 echo why3 drivers location			= "${DRIVERS}"
-if [$TREE -eq 1] then
-    echo tree path                      = "${JSONPATH}"
-fi
-if [$TREE -eq 0] then
-    echo forest path                    = "${JSONPATH}"
+if [ "$TREE" -eq 1 ]; then
+    echo tree path = "${JSONPATH}"
+else
+    echo forest path = "${JSONPATH}"
 fi
 
-if [$REINSTALL -eq 1] then
+if [ "$REINSTALL" -eq 1 ]; then
     ./uninstall.sh -l ${LOCATION} -w ${WHY3}
 fi
 
@@ -82,8 +84,8 @@ if ocamlfind ocamlc -g -thread -linkpkg -package yojson \
     else echo fail; exit 1
 fi
 
-./print_tree.native;
-echo "printing tree.ml.."
+echo ./print_tree.native ${TREE} ${JSONPATH}
+./print_tree.native ${TREE} ${JSONPATH}
 
 printf "compiling tree.ml interface..."
 if ocamlfind ocamlc -c tree.mli;

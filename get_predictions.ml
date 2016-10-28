@@ -1,6 +1,7 @@
 open Printf
 open Treetypes
 
+(* traversing a tree recursively until a Leaf is encountered *)
 let rec get_predictions_tree stats (index:int) (tree:decision_tree) : tree_node option  = 
 	let n = tree.(index) in
 	match n with
@@ -14,7 +15,8 @@ let rec get_predictions_tree stats (index:int) (tree:decision_tree) : tree_node 
 	| Leaf _ -> 
 		(*printf "returning predictions!\n";*) (* for testing only!!*)
 		Some n
-	
+
+(* not actually used - where4.ml has its own function which does this *)	
 let print_predictions (n:tree_node option) : unit =
 	match n with
 	| Some tn -> (match tn with Leaf preds -> List.iter (fun (s,p) -> 
@@ -47,14 +49,15 @@ let combine_leaves (p:tree_node) (q:tree_node) : tree_node =
 		| Node _ -> eprintf "Unexpected non-leaf node encountered. Exiting\n"; exit 1)
 	| Node _ -> eprintf "Unexpected non-leaf node encountered. Exiting\n"; exit 1 
 
+(* a forest's prediction is the average of its trees' prediction *)
 let get_predictions_forest stats (forst:forest) : tree_node option = 
+	(* Filtering out the Nones (no prediction there) *)
 	let somes = List.filter 
 		(fun a -> match a with Some _ -> true | None -> false) 
 		(List.map (get_predictions_tree stats 0) forst) in
 	let predictions = List.map 
 		(fun a -> match a with Some p -> p | None -> eprintf "None slipped through"; exit 1) 
 		somes in 
-	(* Filtering out the Nones *)
 	(* now get the average of all these predictions *)
 	match predictions with
 	| hd :: tl ->   
@@ -62,12 +65,14 @@ let get_predictions_forest stats (forst:forest) : tree_node option =
 	   	average_from_forest (float_of_int (List.length predictions)) summed
 		)
 	| [] -> None
-	
-let get_predictions stats (*(t_or_f:tree_or_forest)*) : tree_node option =
+
+(* initial function for tree or forest *)	
+let get_predictions stats : tree_node option =
 	match Tree.tree with
 	| Tree t -> get_predictions_tree stats 0 t
 	| Forest f -> get_predictions_forest stats f
 
+(* sorting based on cost *)
 let sort_predictions pred : prediction list =
 	match pred with
 	| None -> [] | Some p -> (match p with 
@@ -78,6 +83,7 @@ let sort_predictions pred : prediction list =
 	 	)
 	)
 
+(*safe way to extract provers from the head of a list using options*)
 let get_best (preds:prediction list) = 
 	match preds with [] -> None
 	| (n,_)::tl -> Some(n) 

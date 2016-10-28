@@ -3,10 +3,13 @@ open Why3
 open Mytermcode
 open Term
 open Treetypes
-open Get_predictions
 open Printer
 open Driver
+(* Why3 above, mine below *)
+open Get_predictions
 open Make_session
+
+(* some record types used locally *)
 
 type result = Call_provers.prover_result * string * string
 
@@ -17,6 +20,7 @@ type where_options = {
   verbose: bool;
   time: int;
   rel: bool;
+  config: string;
 }
 
 type where_task = {
@@ -33,7 +37,9 @@ let get_stats t = Mytermcode.t_shape_num_map t
 let print_level_tags_goal stats : unit =
     Hashtbl.iter (fun k v -> if k="avg_op_arity" then printf "%s:%f\n" k v else printf "%s:%.0f\n" k v ) stats(*(get_stats t)*)
 
-(* print the static metrics as well as predicted best solver *)
+(* print the static metrics as well as predicted best solver .
+  This functionality is not currently available from the command-line options
+*)
 let print_stats theory goals : unit = 
   let t_name : Ident.ident = theory.Session.theory_name in
   List.iter
@@ -50,6 +56,7 @@ let print_stats theory goals : unit =
     )
   goals
 
+(* write the fields given a better result *)
 let update_task (current:where_task) (new_result:result) (pr:Call_provers.prover_result) : where_task =
   { theory_name = current.theory_name;
     goal_name = current.goal_name;
@@ -57,6 +64,7 @@ let update_task (current:where_task) (new_result:result) (pr:Call_provers.prover
     current_time = (current.current_time +. pr.Call_provers.pr_time) 
   }
 
+(* for the total ordering of solver responses *)
 let ans_to_num pr : int =
   match pr with
   | Call_provers.Valid -> 0
@@ -65,6 +73,8 @@ let ans_to_num pr : int =
   | Call_provers.Timeout -> 3
   | _ -> 4 
 
+(* is the new result better than the current best?
+    if so, update the current best *)
 let check_update (current:where_task) (new_result:result) : where_task =
 
  match new_result with
@@ -75,13 +85,17 @@ let check_update (current:where_task) (new_result:result) : where_task =
    | (pr2,_,_) -> 
    begin
      let p2 = (ans_to_num pr2.Call_provers.pr_answer) in
-     if p1 < p2 || (p1 = p2 && pr1.Call_provers.pr_time < current.current_time) then 
+
+     (* new result is a smaller answer  *)
+
+     if p1 < p2 || (p1 = p2 && pr1.Call_provers.pr_time < pr2.Call_provers.pr_time) then 
         update_task current new_result pr1
      else
         current
    end
  end
 
+(* check if another prover needs to be called *)
 let try_again (pr : result) : bool =
   match pr with 
   |(p,_,_) ->
@@ -91,21 +105,25 @@ let try_again (pr : result) : bool =
     | _ -> true
 
 
-
+(* returns the best (prover * driver) option installed locally, and the rest in case the best fails *)
 let rec best_I_have hash preds : ((Why3.Whyconf.config_prover * Why3.Driver.driver) option * prediction list) = 
   match preds with
-  | [] -> (None,[])
+  | [] -> (None,[]) (* list has been exhausted *)
   | (h, _)::tl -> (
       try
         let t = Hashtbl.find hash h in
         match t with
-        | Some (p, d) -> (t, tl)
+        (* the best is installed *)
+        | Some _ -> (t, tl) (* return the best and the rest *)
+        (* best not installed, find the next best *)
         | None -> best_I_have hash tl
       with Not_found ->
+        (* best not installed, find the next best *)
         best_I_have hash tl
     )
 
-(* convert the prover answer into a string the Why3 driver understands *)
+(* convert the prover answer into a string the Why3 driver understands
+    and print it *)
 let print_answer (wtsk:where_task) (to_print:result) : unit =
   match to_print with
   |(pr, pname, pver) ->
@@ -131,7 +149,9 @@ let print_answer (wtsk:where_task) (to_print:result) : unit =
       steps
 
 
-
+(* actually call p (config prover), given its driver d, using commands from 
+    prover, with a time limit
+    returns Some result if successful, None otherwise *)
 let get_prover_result p d tsk prover time : result option =
     try
       let pre_pc = Driver.prove_task 
@@ -140,6 +160,7 @@ let get_prover_result p d tsk prover time : result option =
         ~limit:(Call_provers.mk_limit time 1000 10000) d tsk in
       let pc = pre_pc () in
       let post_pc : Call_provers.post_prover_call =
+      (* blocks *)
       Call_provers.wait_on_call pc in
       let _pr : Call_provers.prover_result = post_pc () in
       Some (_pr, prover.Whyconf.prover_name, prover.Whyconf.prover_version)
@@ -149,11 +170,17 @@ let get_prover_result p d tsk prover time : result option =
         prover.Whyconf.prover_name;
       None
 
+(* recursively call solvers until there are non left or Valid/Invalid is returned *)
+(* args:  hash - the solvers+drivers and whether they are installed
+          preds - predicted rank in order
+          tsk - the Why3 Task. needed when calling get_prover_result
+          time - time out value
+          current - the best result so far
+          verbose - boolean controlling printing *)
 let rec exhaust_provers hash preds tsk time current verbose : unit =
   let best, rest = best_I_have hash preds in
   match best with
-  | None -> print_answer current current.current_best(*eprintf "ERROR, none returned by best_I_have\n"*)
-  | Some (p, d) -> 
+  | None -> print_answer current current.current_best
     let prover : Whyconf.prover = p.Whyconf.prover in
     let _pr : result option = get_prover_result p d tsk prover time in 
     match _pr with
@@ -178,6 +205,7 @@ let initial_prover hash tsk time : result option =
                       ("Z3-4.3.2",      5.0);
                       ("Yices",         6.0); 
                       ("veriT",         7.0)] in
+  (* get highest-ranking installed locally *)                    
   let best, _ = best_I_have hash static_order in
 
   match best with
@@ -187,8 +215,10 @@ let initial_prover hash tsk time : result option =
     get_prover_result p d tsk prover time
   
 
-(*  *)
+(* schedule an initial solver and the entire rank if that one is unsuccessful *)
 let prove path_to_file (file:unit Session.file) hash (opt:where_options) : unit =
+
+  (* for each theory in the file, for each goal in the theory *)
   List.iter (
     fun th -> List.iter (
       fun g -> 
@@ -198,19 +228,21 @@ let prove path_to_file (file:unit Session.file) hash (opt:where_options) : unit 
         match _pr with
         | None -> ()
         | Some pr ->
-        let theory_name = th.Session.theory_name in
+        (let theory_name = th.Session.theory_name in
         let goal_name = g.Session.goal_name in
         match pr with
         | (pres,_,_) ->
         begin
-        
+        (* the current best result *)
         let curr = {
           theory_name = theory_name.Ident.id_string;
           goal_name = goal_name.Ident.id_string;
           current_best = pr;
           current_time = pres.Call_provers.pr_time 
           } in
-        
+
+        let () = if opt.verbose then print_answer curr pr in
+        (* did pre-solving work? *)
         if (try_again pr) then
           (* feature extraction and prediction *)
           let sorted = tsk |> get_stats |> get_predictions |> sort_predictions in
@@ -223,9 +255,12 @@ let prove path_to_file (file:unit Session.file) hash (opt:where_options) : unit 
         else
           (* pre-solving successful *)
           print_answer curr pr
-        end
+        end)
     ) th.Session.theory_goals
   ) file.Session.file_theories
+
+(* for each theory in the file, for each goal in the theory, 
+      extract metrics; traverse trees, sort predictions; print ranks of provers *)
 
 let print_predict path_to_file (file:unit Session.file) hash (opt:where_options) : unit =
   List.iter (
@@ -246,7 +281,6 @@ let print_predict path_to_file (file:unit Session.file) hash (opt:where_options)
     ) th.Session.theory_goals
   ) file.Session.file_theories
 
-
 let print_usage () = 
   printf "Where4 version 1.1 (October 2016, Maynooth University)\n\n";
   printf "USAGE:\n\n";
@@ -261,46 +295,59 @@ let print_usage () =
   printf "  -ts,--threshold THRESH\tset the cost threshold to the floating point THRESH (optional)\n"; 
   printf "  -tm,--time TIME\t\tset the time limit for each prover to be the integer TIME (optional)\n";
   printf "  -v,--verbose\t\tprint out each solver answer (optional)\n";
+  printf "  -c,--config PATH\t\tset the path to '.why.conf' (~/ by default)\n";
   exit 0
 
-let print_opts (opt:where_options): unit=
+(*let print_opts (opt:where_options): unit=
   printf "time:%d\n" opt.time;
   let () = if opt.rel then printf "rel:true\n" else printf "rel:false\n" in
   let () = if opt.verbose then printf "verbose:true\n" else printf "verbose:false\n" in
-  match opt.thresh with Some f -> (printf "thresh:%.2f" f) | None -> printf "thresh:none\n"
+  match opt.thresh with Some f -> (printf "thresh:%.2f" f) | None -> printf "thresh:none\n"*)
 
-let one_tab_or_two s =
-  if String.length s < 6 then "\t\t" else "\t"
-
+(* what kind of file is it? where is it and where is it going? *)
 let prove_or_predict which_fun len opt =
   if len > 2 then
     let pm = provermap in
     let fn = if opt.rel then 
-      (make_file Sys.argv.(2))
+      (make_file Sys.argv.(2) opt.config "whyml")
     else
       (* handle calls for why3 differently:
          the path needs to made relative to the tmp folder where why3 prints,
          a timit limit is given by the user via the driver 
        *)
-      (make_file (make_relative Sys.argv.(3)))
+      (make_file (make_relative Sys.argv.(2)) opt.config "why")
     in
+      (*printf "Format of %s: %s\n" path f; exit 0*) (* debugging *)
       which_fun Sys.argv.(2) fn pm opt; exit 0
   else printf "filename expected"; print_usage ()
 
+(* only used for debugging *)
+let print_opts (opt:where_options) : unit =
+  let t = 
+    match opt.thresh with
+    | Some th -> th
+    | None -> 0.0
+    in
+  let v = if opt.verbose then "true" else "false" in
+  let rel = if opt.rel then "true" else "false" in
+  printf "thresh: %.2f\nverbose: %s\ntime: %d\nrel: %s\nconfig: %s\n"
+  t v opt.time rel opt.config   
+
+(* checking that arguements make sense and returning them to the entry-point function *)
 let rec extract_args (args:string list) (acc:where_options) : where_options option =
   match args with 
   | [] -> Some acc
   | h::t ->
   begin
     match h with 
-    | "-v" | "--verbose" -> extract_args t {thresh=acc.thresh;verbose=true;time=acc.time;rel=acc.rel}
-    | "-why " -> extract_args t {thresh=acc.thresh;verbose=acc.verbose;time=acc.time;rel=false}
+    | "-v" | "--verbose" -> extract_args t {thresh=acc.thresh;verbose=true;time=acc.time;rel=acc.rel;config=acc.config}
+    | "--why" -> extract_args t {thresh=acc.thresh;verbose=acc.verbose;time=acc.time;rel=false;config=acc.config}
     | "-ts" | "--threshold" ->
     begin
       match t with
       | hd::tl -> 
         (try
-          extract_args tl {thresh=Some (float_of_string hd);verbose=acc.verbose;time=acc.time;rel=acc.rel}
+          extract_args tl {thresh=Some (float_of_string hd);verbose=acc.verbose;time=acc.time;rel=acc.rel;config=acc.config}
         with e -> printf "ERROR: THRESH must be a float eg: 7.5\n"; None) 
       | _ -> printf "-ts or --threshold must be followed by a float eg. 7.5\n"; None
     end
@@ -309,19 +356,32 @@ let rec extract_args (args:string list) (acc:where_options) : where_options opti
       match t with 
       | hd::tl -> 
         (try
-          extract_args tl {thresh=acc.thresh;verbose=acc.verbose;time=(int_of_string hd);rel=acc.rel}
+          extract_args tl {thresh=acc.thresh;verbose=acc.verbose;time=(int_of_string hd);rel=acc.rel;config=acc.config}
         with e -> printf "ERROR: TIME must be an integer eg. 5\n"; None) 
       | _ -> printf "-tm or --time must be followed by an integer eg. 5.\n"; None
+    end
+    | "-c" | "--config" ->
+    begin
+      match t with
+      | hd::tl -> extract_args tl {thresh=acc.thresh;verbose=acc.verbose;time=acc.time;rel=acc.rel;config=hd}
+      | _ -> printf "-c or --config must be followed by a path to .why3.conf\n"; None
     end
     | _ -> extract_args t acc
   end
 
+let one_tab_or_two s =
+  if String.length s < 6 then "\t\t" else "\t"
+
+(* entry point for Where4 *)
 let () = 
   let len = Array.length Sys.argv in
-  let o = extract_args (Array.to_list Sys.argv) {thresh=None;verbose=false;time=5;rel=true} in 
+  (* process options to create a where_options record.
+     it starts with some defaults. *)
+  let o = extract_args (Array.to_list Sys.argv) {thresh=None;verbose=false;time=5;rel=true;config=((Sys.getenv "HOME")^"/.why3.conf")} in 
   match o with 
-  | None -> exit 0
+  | None -> exit 0 (* error caught *)
   | Some opt ->
+  (*print_opts opt*) (*debugging*) 
   if len > 1 then
     match Sys.argv.(1) with
     | "-h" | "--help" -> print_usage ()
@@ -336,6 +396,8 @@ let () =
         | None -> printf "%s%s ... NOT found\n" k (one_tab_or_two k)
       ) pm
     )
+    (* similar process used to predict as to prove - at least initially.
+       pass to a function to determine what to do *)
     | "prove" -> prove_or_predict prove len opt
     | "predict" -> prove_or_predict print_predict len opt
     (* it will fall through to this if you're not careful *)
